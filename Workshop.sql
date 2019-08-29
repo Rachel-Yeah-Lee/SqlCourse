@@ -1,10 +1,14 @@
 --Workshop2
+--N''代表將資料用unicode編碼，預設是Big-5，unicode(萬國編碼系統)有較多的字
 /*1.列出每個借閱人每年借書數量，並依借閱人編號和年度做排序
 Table：BOOK_LEND_RECORD、MEMBER_M */
 USE [GSSWEB]
 GO
 
-SELECT	KEEPER_ID AS KeeperId,mm.USER_CNAME AS CName, mm.USER_ENAME AS EName,YEAR(LR.LEND_DATE) AS BorrowYear,COUNT(KEEPER_ID) AS BorrowCnt
+SELECT	KEEPER_ID AS KeeperId,mm.USER_CNAME AS CName
+		,mm.USER_ENAME AS EName
+		,YEAR(LR.LEND_DATE) AS BorrowYear
+		,COUNT(KEEPER_ID) AS BorrowCnt
 FROM	BOOK_LEND_RECORD AS blr
 		JOIN MEMBER_M AS mm ON KEEPER_ID = [USER_ID]
 GROUP BY KEEPER_ID,mm.USER_CNAME,mm.USER_ENAME,YEAR(LEND_DATE)
@@ -12,7 +16,9 @@ ORDER BY KeeperId,YEAR(LR.LEND_DATE);
 
 /*2.列出最受歡迎的書前五名(借閱數量最多前五名)
 Table：BOOK_LEND_RECORD */
-SELECT TOP(5)blr.BOOK_ID AS BookId,bd.BOOK_NAME AS BookName,COUNT(bd.BOOK_ID) AS QTY 
+SELECT TOP(5)
+		blr.BOOK_ID	AS BookId,bd.BOOK_NAME AS BookName
+		,COUNT(bd.BOOK_ID)	AS QTY 
 FROM BOOK_LEND_RECORD blr
 	 JOIN BOOK_DATA bd ON blr.BOOK_ID = bd.BOOK_ID
 GROUP BY blr.BOOK_ID,bd.BOOK_NAME
@@ -32,7 +38,10 @@ FROM	(SELECT
 		 )blr
 GROUP BY [Quarter]
 ORDER BY [Quarter]
-
+--如果2018只要分上下半年，2019要分四季，可以另外作兩個資料表，
+--2018年,1~6月,上半年 \n 2018年,7~12月,下半年
+--2019年,1~3月,第一季 \n 2019年,4~6月,第二季 \n 2019年,7~9月,第三季 \n 2019年,10~12月,第四季
+--最後在查詢的時候JOIN資料表2018和2019
 
 /*4.撈出每個分類借閱數量前三名書本及數量
 Table：BOOK_LEND_RECORD、BOOK_CLASS*/
@@ -90,12 +99,12 @@ SELECT	 ClassId,ClassName
 FROM	(SELECT bc.BOOK_CLASS_ID AS ClassId
 				,bc.BOOK_CLASS_NAME AS ClassName
 				,YEAR(blr.LEND_DATE) AS LEND_DATE
-				,COUNT(bd.BOOK_ID)AS BookId
+				,COUNT(bd.BOOK_ID)AS countBookId
 		 FROM	BOOK_CLASS bc 
 				JOIN BOOK_DATA bd  ON bc.BOOK_CLASS_ID=bd.BOOK_CLASS_ID
 				JOIN BOOK_LEND_RECORD blr ON bd.BOOK_ID=blr.BOOK_ID
 		 GROUP BY bc.BOOK_CLASS_ID,bc.BOOK_CLASS_NAME,(blr.LEND_DATE))AS GroupByLendDate
-PIVOT	( SUM(GroupByLendDate.BookId) For LEND_DATE
+PIVOT	( SUM(BookId) For LEND_DATE
 		  IN ([2016],[2017],[2018],[2019])) AS pvt
 ORDER BY ClassId;
 
@@ -106,10 +115,11 @@ ORDER BY ClassId;
 --因為衍生資料表裡面取出來的是同一類別之中不同日期(年度或日的)的BookId借閱數量
 --所以在PIVOT裡面對算完(COUNT)的BookId借閱數量作加總(SUM)就可以
 --以年度GROUPBY(LEND_DATE):BookId在一年只會有一筆COUNT，以日GROUP BY(LEND_DATE):BookId在一年會有多筆COUNT
-
+--SUM()對每筆資料作加總，COUNT():計算資料的列數，That's,內容相同的資料也會獨立計算
 
 /*7.請查詢出李四的借書紀錄，其中包含書本ID、購書日期(yyyy/mm/dd)、借閱日期(yyyy/mm/dd)、書籍類別(id-name)、借閱人(id-cname(ename))、狀態(id-name)、購書金額
 Table：BOOK_DATA、BOOK_LEND_RECORD、BOOK_CLASS、BOOK_CODE*/
+--大小寫在需求上可能會有不同的意思eg.mm代表'月' MM代表'分'，hh代表'12小時制(有上下午)' HH代表'24小時制'
 SELECT	bd.BOOK_ID AS '書本ID'
 		,CONVERT(VARCHAR(100),bd.BOOK_BOUGHT_DATE,111) AS '購書日期'
 		,CONVERT(VARCHAR(100),blr.LEND_DATE,111)AS '借閱日期'
@@ -158,8 +168,8 @@ WHERE	KEEPER_ID ='李四'
 	  AND BOOK_ID=2004;
 
 /*9.請將題9新增的借閱紀錄(書本ID=2004)刪除*/
-DELETE FROM BOOK_LEND_RECORD
-	   WHERE	KEEPER_ID IN(SELECT [USER_ID]
+DELETE FROM BOOK_LEND_RECORD WHERE	--如果把WHERE放在這邊，可以防止手滑按到DELETE資料表
+		KEEPER_ID IN(SELECT [USER_ID]
 							 FROM	MEMBER_M mm
 							 WHERE mm.USER_CNAME='李四')
 				AND BOOK_ID=2004;
