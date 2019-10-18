@@ -1,0 +1,32 @@
+--------------SQL--------------------
+TOP(5) WITH TIES 一定會搭配 ORDERBY, TIES是捆 串 的意思，
+所以當 TOP前幾項被列出來後 WITH TIES 還會將"值"相等的欄位也列出來
+也就是可能會超出TOP裡面的參數。
+
+OUTER JOIN: LEFT JOIN = LEFT OUTER JOIN 
+OUTER JOIN 包含除了INNER JOIN 的內容以外還有OUTER(以外)的內容
+所以OUTER一定會搭配RIGHT/LEFT/FULL等關鍵字知道要另外包含的資料表
+
+前端的日期如果包含文字eg."1999-08-14 00:00:00上午"
+在資料庫做查詢時會有問題，所以前端傳回來的日期要注意資料型態轉換
+
+對NULL值的處理與判斷:
+NASI_NULLS setting:
+When ANSI_NULLS is ON, a SELECT statement that uses WHERE column_name = NULL returns zero rows even if there are null values in column_name. A SELECT statement that uses WHERE column_name <> NULL returns zero rows even if there are nonnull values in column_name.
+
+When ANSI_NULLS is OFF, the Equals (=) and Not Equal To (<>) comparison operators do not follow the ISO standard. A SELECT statement that uses WHERE column_name = NULL returns the rows that have null values in column_name. A SELECT statement that uses WHERE column_name <> NULL returns the rows that have nonnull values in the column.
+**把NULL強制轉換成其他值eg.' ' 空字串，再來做WHERE條件的判斷
+SELECT CustomerID, City, Region, Country
+FROM Sales.Customers
+WHERE ISNULL(Region,' ') = ' ' 
+
+COUNT(*) v.s. COUNT(ID) : 後者不會計算NULL的數量
+**除了COUNT(*)之外，其他函數不會將NULL值納入計算eg.AVG() MAX() MIN()
+**如果在運算時還是要考慮NULL值，可透過 COALESCE or ISNULL 來處理:
+SELECT SUM(COALESCE(c2,0)) AS SumNonnulls
+, COUNT(*) AS CountAllRows
+, COUNT(COALESCE(c2,0))AS CountNonnulls
+, AVG(COALESCE(c2,0)) AS [Avg]
+, (SUM(COALESCE(c2,0))/COUNT(*))AS ArithAvg
+FROM dbo.t1;
+ 
